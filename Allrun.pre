@@ -1,0 +1,39 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
+#------------------------------------------------------------------------------
+
+runApplication blockMesh
+
+runApplication surfaceFeatureExtract
+
+runApplication decomposePar
+
+runParallel snappyHexMesh -overwrite
+
+runApplication reconstructParMesh -constant 
+
+runApplication renumberMesh -overwrite
+
+rm -rf 0
+
+runApplication topoSet -dict system/createInletOutletSets.topoSetDict
+
+for i in 1 2
+do
+    runApplication -s "$i" \
+        createPatch -dict system/createPatchDict.${i} -overwrite
+
+done
+
+runApplication checkMesh
+
+rm -rf proce*
+
+mkdir pre
+
+mv log* pre
+
+python3 updateOuterCylinderType.py
+
+#------------------------------------------------------------------------------
